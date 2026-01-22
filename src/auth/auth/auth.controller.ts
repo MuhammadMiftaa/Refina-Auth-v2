@@ -8,6 +8,11 @@ import {
 import { AuthService } from './auth.service';
 import { User } from 'generated/prisma/client';
 import { ValidationFilter } from 'src/validation/validation.filter';
+import {
+  RegisterRequest,
+  registerRequestValidation,
+} from 'src/model/register.model';
+import { ValidationPipe } from 'src/validation/validation.pipe';
 
 @Controller('auth')
 export class AuthController {
@@ -16,11 +21,9 @@ export class AuthController {
   @Post('/register')
   // @UseFilters(ValidationFilter)
   register(
-    @Body('name') name: string,
-    @Body('email') email: string,
-    @Body('password') password: string,
+    @Body(new ValidationPipe(registerRequestValidation)) body: RegisterRequest,
   ): Promise<User> {
-    return this.authService.register(name, email, password);
+    return this.authService.register(body);
   }
 
   @Post('/login')
