@@ -4,7 +4,7 @@ import { AuthService } from './auth/auth.service';
 import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [],
   controllers: [AuthController],
   providers: [AuthService]
 })
