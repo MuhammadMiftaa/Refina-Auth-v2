@@ -1,17 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { User } from 'generated/prisma/client';
 import { PrismaService } from 'src/prisma/prisma/prisma.service';
+import { ValidationService } from 'src/validation/validation/validation.service';
+import z from 'zod';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private validationService: ValidationService,
+  ) {}
 
   async register(name: string, email: string, password: string): Promise<User> {
+    const result = this.validationService.validate(
+      z.object({
+        name: z.string().min(2).max(100),
+        email: z.string(),
+        password: z.string().min(6).max(100),
+      }),
+      { name, email, password },
+    );
     return this.prisma.user.create({
       data: {
-        name,
-        email,
-        password,
+        name: result.name,
+        email: result.email,
+        password: result.password,
       },
     });
   }
