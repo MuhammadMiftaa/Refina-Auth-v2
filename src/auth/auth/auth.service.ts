@@ -1,12 +1,19 @@
 import { Injectable } from '@nestjs/common';
+import { User } from 'generated/prisma/client';
+import { PrismaService } from 'src/prisma/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
-  async register() {
-    // registration logic
-    return {
-      message: 'User registered successfully',
-    };
+  constructor(private prisma: PrismaService) {}
+
+  async register(name: string, email: string, password: string): Promise<User> {
+    return this.prisma.user.create({
+      data: {
+        name,
+        email,
+        password,
+      },
+    });
   }
 
   async login() {
