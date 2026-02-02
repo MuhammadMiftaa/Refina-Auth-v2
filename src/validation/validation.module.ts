@@ -1,6 +1,5 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ValidationService } from './validation/validation.service';
-import { boolean } from 'zod';
 
 @Module({})
 export class ValidationModule {

@@ -1,0 +1,436 @@
+### ===============================================
+### AUTH API TEST CASES
+### ===============================================
+### Base URL Configuration
+@baseUrl = http://localhost:8080
+
+### ===============================================
+### 1. REGISTER ENDPOINT
+### ===============================================
+
+### 1.1 Register - SUCCESS
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com"
+}
+
+### 1.2 Register - FAIL: Empty Body
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{}
+
+### 1.3 Register - FAIL: Invalid Email Format
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "invalid-email"
+}
+
+### 1.4 Register - FAIL: Email Already Registered (User Exists)
+# Run this after completing profile for the same email
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "existinguser@example.com"
+}
+
+### 1.5 Register - FAIL: Missing Email Field
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "wrongField": "testuser@example.com"
+}
+
+### 1.6 Register - FAIL: Email is Null
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": null
+}
+
+### 1.7 Register - FAIL: Email is Empty String
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": ""
+}
+
+
+
+### ===============================================
+### 2. VERIFY OTP ENDPOINT
+### ===============================================
+
+### 2.1 Verify OTP - SUCCESS
+# Use the OTP from register response (check console log)
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "otp": "157550"
+}
+
+### 2.2 Verify OTP - FAIL: Empty Body
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{}
+
+### 2.3 Verify OTP - FAIL: Missing Email
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "otp": "123456"
+}
+
+### 2.4 Verify OTP - FAIL: Missing OTP
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com"
+}
+
+### 2.5 Verify OTP - FAIL: Invalid OTP (Wrong Code)
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "otp": "000000"
+}
+
+### 2.6 Verify OTP - FAIL: Email Not Registered (No OTP exists)
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "notregistered@example.com",
+  "otp": "123456"
+}
+
+### 2.7 Verify OTP - FAIL: OTP Already Used
+# Run verify-otp twice with the same valid OTP
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "otp": "387579"
+}
+
+### 2.8 Verify OTP - FAIL: OTP Expired
+# Wait until OTP expires, then try to verify
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "otp": "123456"
+}
+
+### 2.9 Verify OTP - FAIL: Invalid Email Format
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "invalid-email",
+  "otp": "123456"
+}
+
+### 2.10 Verify OTP - FAIL: OTP Not 6 Digits
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "otp": "12345"
+}
+
+
+
+### ===============================================
+### 3. COMPLETE PROFILE ENDPOINT
+### ===============================================
+
+### 3.1 Complete Profile - SUCCESS
+# Use tempToken from verify-otp response
+POST {{baseUrl}}/auth/complete-profile?tempToken=qQ3oILORl9TL
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "password": "SecurePassword123!",
+  "confirmPassword": "SecurePassword123!"
+}
+
+### 3.2 Complete Profile - FAIL: Empty Body
+POST {{baseUrl}}/auth/complete-profile?tempToken=o4IZGEbMn70S
+Content-Type: application/json
+
+{}
+
+### 3.3 Complete Profile - FAIL: Missing Name
+POST {{baseUrl}}/auth/complete-profile?tempToken=o4IZGEbMn70S
+Content-Type: application/json
+
+{
+  "password": "SecurePassword123!",
+  "confirmPassword": "SecurePassword123!"
+}
+
+### 3.4 Complete Profile - FAIL: Missing Password
+POST {{baseUrl}}/auth/complete-profile?tempToken=o4IZGEbMn70S
+Content-Type: application/json
+
+{
+  "name": "Test User"
+}
+
+### 3.5 Complete Profile - FAIL: Missing tempToken Query Param
+POST {{baseUrl}}/auth/complete-profile
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "password": "SecurePassword123!",
+  "confirmPassword": "SecurePassword123!"
+}
+
+### 3.6 Complete Profile - FAIL: Invalid tempToken
+POST {{baseUrl}}/auth/complete-profile?tempToken=invalid-token-12345
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "password": "SecurePassword123!",
+  "confirmPassword": "SecurePassword123!"
+}
+
+### 3.7 Complete Profile - FAIL: tempToken Already Used (User Already Created)
+# Run complete-profile twice with the same tempToken
+POST {{baseUrl}}/auth/complete-profile?tempToken=already-used-token
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "password": "SecurePassword123!",
+  "confirmPassword": "SecurePassword123!"
+}
+
+### 3.8 Complete Profile - FAIL: Password don't match
+POST {{baseUrl}}/auth/complete-profile?tempToken=expired-token
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "password": "SecurePassword123!",
+  "confirmPassword": "Password123!"
+}
+
+### 3.9 Complete Profile - FAIL: Password Too Short
+POST {{baseUrl}}/auth/complete-profile?tempToken=o4IZGEbMn70S
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "password": "123",
+  "confirmPassword": "123"
+}
+
+### 3.10 Complete Profile - FAIL: Name Too Short
+POST {{baseUrl}}/auth/complete-profile?tempToken=o4IZGEbMn70S
+Content-Type: application/json
+
+{
+  "name": "A",
+  "password": "SecurePassword123!",
+  "confirmPassword": "SecurePassword123!"
+}
+
+### 3.11 Complete Profile - FAIL: Empty tempToken
+POST {{baseUrl}}/auth/complete-profile?tempToken=
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "password": "SecurePassword123!",
+  "confirmPassword": "SecurePassword123!"
+}
+
+
+
+### ===============================================
+### 4. LOGIN ENDPOINT
+### ===============================================
+
+### 4.1 Login - SUCCESS
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "SecurePassword123!"
+}
+
+### 4.2 Login - FAIL: Empty Body
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{}
+
+### 4.3 Login - FAIL: Missing Email
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "password": "SecurePassword123!"
+}
+
+### 4.4 Login - FAIL: Missing Password
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com"
+}
+
+### 4.5 Login - FAIL: User Not Found (Email Not Registered)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "notexists@example.com",
+  "password": "SecurePassword123!"
+}
+
+### 4.6 Login - FAIL: Wrong Password
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "WrongPassword123!"
+}
+
+### 4.7 Login - FAIL: Invalid Email Format
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "invalid-email",
+  "password": "SecurePassword123!"
+}
+
+### 4.8 Login - FAIL: Empty Email
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "",
+  "password": "SecurePassword123!"
+}
+
+### 4.9 Login - FAIL: Empty Password
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": ""
+}
+
+### 4.10 Login - FAIL: Deleted User (Soft Delete)
+# User with deletedAt != null
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "deleteduser@example.com",
+  "password": "SecurePassword123!"
+}
+
+
+
+### ===============================================
+### 5. FULL FLOW TEST (SUCCESS SCENARIO)
+### ===============================================
+
+### Step 1: Register new user
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "newuser@example.com"
+}
+
+### Step 2: Verify OTP (get OTP from console log or email)
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "newuser@example.com",
+  "otp": "REPLACE_WITH_ACTUAL_OTP"
+}
+
+### Step 3: Complete Profile (use tempToken from step 2)
+POST {{baseUrl}}/auth/complete-profile?tempToken=REPLACE_WITH_TEMP_TOKEN
+Content-Type: application/json
+
+{
+  "name": "New User",
+  "password": "SecurePassword123!"
+}
+
+### Step 4: Login with new credentials
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "newuser@example.com",
+  "password": "SecurePassword123!"
+}
+
+
+
+### ===============================================
+### 6. OAUTH ENDPOINTS (Placeholder)
+### ===============================================
+
+### Google Login
+POST {{baseUrl}}/auth/google
+Content-Type: application/json
+
+### Google Callback
+POST {{baseUrl}}/auth/google/callback
+Content-Type: application/json
+
+### Microsoft Login
+POST {{baseUrl}}/auth/microsoft
+Content-Type: application/json
+
+### Microsoft Callback
+POST {{baseUrl}}/auth/microsoft/callback
+Content-Type: application/json
+
+### GitHub Login
+POST {{baseUrl}}/auth/github
+Content-Type: application/json
+
+### GitHub Callback
+POST {{baseUrl}}/auth/github/callback
+Content-Type: application/json
+
+### Logout
+POST {{baseUrl}}/auth/logout
+Content-Type: application/json
