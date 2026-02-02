@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { User } from 'generated/prisma/client';
 import { CompleteProfileRequest } from 'src/model/complete-profile.model';
 import { LoginRequest } from 'src/model/login.model';
@@ -13,12 +13,17 @@ import {
 } from 'src/utils/generate.utils';
 import bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
+import { EmailService } from 'src/email/email/email.service';
+import { Logger } from 'winston';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 @Injectable()
 export class AuthService {
   constructor(
+    @Inject(WINSTON_MODULE_PROVIDER) private logger: Logger,
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private emailService: EmailService,
   ) {}
 
   async register(body: RegisterRequest): Promise<{ email: string }> {
@@ -57,7 +62,11 @@ export class AuthService {
       }),
     ]);
 
-    console.log('OTP sent:', insertOTP.code);
+    try {
+      await this.emailService.sendOTP(body.email, OTP);
+    } catch (error) {
+      this.logger.error('Error sending OTP email:', error);
+    }
 
     return { email: insertOTP.email };
   }

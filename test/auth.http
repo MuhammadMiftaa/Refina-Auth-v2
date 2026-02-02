@@ -13,7 +13,7 @@ POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
 {
-  "email": "testuser@example.com"
+  "email": "madmifta77@gmail.com"
 }
 
 ### 1.2 Register - FAIL: Empty Body
@@ -75,8 +75,8 @@ POST {{baseUrl}}/auth/verify-otp
 Content-Type: application/json
 
 {
-  "email": "testuser@example.com",
-  "otp": "157550"
+  "email": "madmifta77@gmail.com",
+  "otp": "532778"
 }
 
 ### 2.2 Verify OTP - FAIL: Empty Body

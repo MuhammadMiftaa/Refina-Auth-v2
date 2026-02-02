@@ -13,6 +13,7 @@ import { WinstonModule } from 'nest-winston';
 import { ValidationModule } from './validation/validation.module';
 import * as winston from 'winston';
 import { LogMiddleware } from './middleware/log/log.middleware';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { LogMiddleware } from './middleware/log/log.middleware';
     ValidationModule.forRoot({
       isGlobal: true,
     }),
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
