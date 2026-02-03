@@ -171,23 +171,34 @@ export class AuthService {
 
     const hashedPassword = generateHashPassword(body.password);
 
-    const [userCreated] = await this.prisma.$transaction([
-      this.prisma.user.create({
+    const userCreated = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
         data: {
           name: body.name,
           email: OTP.email,
           password: hashedPassword,
         },
-      }),
-      this.prisma.oTP.update({
+      });
+
+      await tx.userAuthProvider.create({
+        data: {
+          provider: 'local',
+          providerUserId: user.id,
+          userId: user.id,
+        },
+      });
+
+      await tx.oTP.update({
         where: {
           id: OTP.id,
         },
         data: {
           status: OTP_STATUS._COMPLETED,
         },
-      }),
-    ]);
+      });
+
+      return user;
+    });
 
     return userCreated;
   }
@@ -199,7 +210,12 @@ export class AuthService {
         name: true,
         email: true,
         password: true,
-        userAuthProvider: true,
+        userAuthProvider: {
+          select: {
+            provider: true,
+            providerUserId: true,
+          }
+        },
         createdAt: true,
         deletedAt: true,
       },

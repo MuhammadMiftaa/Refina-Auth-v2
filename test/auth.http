@@ -371,7 +371,7 @@ POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
 {
-  "email": "newuser@example.com"
+  "email": "madmifta77@gmail.com"
 }
 
 ### Step 2: Verify OTP (get OTP from console log or email)
@@ -379,17 +379,18 @@ POST {{baseUrl}}/auth/verify-otp
 Content-Type: application/json
 
 {
-  "email": "newuser@example.com",
-  "otp": "REPLACE_WITH_ACTUAL_OTP"
+  "email": "madmifta77@gmail.com",
+  "otp": "068676"
 }
 
 ### Step 3: Complete Profile (use tempToken from step 2)
-POST {{baseUrl}}/auth/complete-profile?tempToken=REPLACE_WITH_TEMP_TOKEN
+POST {{baseUrl}}/auth/complete-profile?tempToken=h6VgHT4ItLQb
 Content-Type: application/json
 
 {
   "name": "New User",
-  "password": "SecurePassword123!"
+  "password": "SecurePassword123!",
+  "confirmPassword": "SecurePassword123!"
 }
 
 ### Step 4: Login with new credentials
@@ -397,7 +398,7 @@ POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "newuser@example.com",
+  "email": "madmifta77@gmail.com",
   "password": "SecurePassword123!"
 }
 
