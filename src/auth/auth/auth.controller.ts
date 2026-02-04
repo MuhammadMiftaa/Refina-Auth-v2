@@ -29,6 +29,11 @@ import { LoginRequest, loginRequestValidation } from 'src/model/login.model';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
+import {
+  SetPasswordRequest,
+  setPasswordRequestValidation,
+} from 'src/model/set-password.model';
+import { RequestSetPasswordRequest, requestSetPasswordValidation } from 'src/model/request-set-password.model';
 
 @Controller('auth')
 export class AuthController {
@@ -153,6 +158,34 @@ export class AuthController {
     return {
       url: `${this.configService.get<string>('REDIRECT_URL')}#token=${res.token}`,
       statusCode: 302,
+    };
+  }
+
+  @Post('/request-set-password')
+  async requestSetPassword(@Body(new ValidationPipe(requestSetPasswordValidation)) body: RequestSetPasswordRequest) {
+    const res = await this.authService.setPasswordOTP(body.email);
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: 'OTP sent successfully',
+      data: res,
+    };
+  }
+
+  @Post('/set-password')
+  async setPassword(
+    @Body(new ValidationPipe(setPasswordRequestValidation))
+    body: SetPasswordRequest,
+    @Query('tempToken') tempToken: string,
+  ) {
+    const token = await this.authService.setPassword(body, tempToken);
+
+    return {
+      status: true,
+      statusCode: 200,
+      message: 'Password set successfully',
+      data: token,
     };
   }
 

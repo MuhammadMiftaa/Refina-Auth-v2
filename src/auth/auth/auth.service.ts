@@ -1,11 +1,11 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { User } from 'generated/prisma/client';
+import { User, UserAuthProvider } from 'generated/prisma/client';
 import { CompleteProfileRequest } from 'src/model/complete-profile.model';
 import { LoginRequest } from 'src/model/login.model';
 import { RegisterRequest } from 'src/model/register.model';
 import { VerifyOTPRequest } from 'src/model/verify-otp.model';
 import { PrismaService } from 'src/prisma/prisma/prisma.service';
-import { OTP_EXPIRATION, OTP_STATUS } from 'src/utils/const.utils';
+import { OTP_EXPIRATION, OTP_PURPOSE, OTP_STATUS } from 'src/utils/const.utils';
 import {
   generateHashPassword,
   generateOTP,
@@ -16,6 +16,7 @@ import { JwtService } from '@nestjs/jwt';
 import { EmailService } from 'src/email/email/email.service';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { SetPasswordRequest } from 'src/model/set-password.model';
 
 @Injectable()
 export class AuthService {
@@ -55,12 +56,14 @@ export class AuthService {
         select: {
           email: true,
           code: true,
+          purpose: true,
           status: true,
           expiresAt: true,
         },
         data: {
           email: body.email,
           code: OTP,
+          purpose: OTP_PURPOSE._REGISTER,
           status: OTP_STATUS._ACTIVE,
           expiresAt: new Date(Date.now() + OTP_EXPIRATION),
         },
@@ -116,7 +119,7 @@ export class AuthService {
         id: OTP.id,
       },
       data: {
-        status: OTP_STATUS._USED,
+        status: OTP_STATUS._VERIFIED,
         tempToken: tempToken,
       },
     });
@@ -148,7 +151,7 @@ export class AuthService {
       throw new HttpException('Invalid token', 400);
     }
 
-    if (OTP.status !== OTP_STATUS._USED) {
+    if (OTP.status !== OTP_STATUS._VERIFIED) {
       throw new HttpException('Invalid token', 400);
     }
 
@@ -257,6 +260,7 @@ export class AuthService {
   }
 
   async oauthLoginCallback(oauthUser: any): Promise<{ token: string }> {
+    // $ Check if user (email) has ever created
     let user = await this.prisma.user.findFirst({
       select: {
         id: true,
@@ -270,16 +274,46 @@ export class AuthService {
         },
       },
       where: {
-        userAuthProvider: {
-          some: {
-            provider: oauthUser.provider,
-            providerUserId: oauthUser.providerId,
-          },
-        },
+        email: oauthUser.email,
+        deletedAt: null,
       },
     });
 
-    if (!user) {
+    let userAuthProvider: {
+      provider: string;
+      providerUserId: string;
+    } | null = null;
+
+    if (user) {
+      // $ If email has ever created, link existing email with OAuth provider
+      // $ Check if user has already linked their account with the OAuth provider
+      userAuthProvider = await this.prisma.userAuthProvider.findFirst({
+        where: {
+          userId: user.id,
+          provider: oauthUser.provider,
+        },
+        select: {
+          provider: true,
+          providerUserId: true,
+        },
+      });
+
+      // $ If user has not linked their account with the OAuth provider, create a new link
+      if (!userAuthProvider) {
+        userAuthProvider = await this.prisma.userAuthProvider.create({
+          data: {
+            userId: user.id,
+            provider: oauthUser.provider,
+            providerUserId: oauthUser.providerId,
+          },
+          select: {
+            provider: true,
+            providerUserId: true,
+          },
+        });
+      }
+    } else {
+      // $ If email has never created, create new user
       user = await this.prisma.user.create({
         select: {
           id: true,
@@ -309,7 +343,151 @@ export class AuthService {
     const token = this.jwtService.sign({
       id: user.id,
       email: user.email,
-      userAuthProvider: user.userAuthProvider,
+      userAuthProvider:
+        userAuthProvider || // $ If user has linked their account with the OAuth provider
+        user.userAuthProvider.find( // $ If user recently create account with the OAuth provider
+          (auth) => auth.provider === oauthUser.provider,
+        ),
+    });
+
+    return { token };
+  }
+
+  async setPasswordOTP(email: string): Promise<{ email: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new HttpException('User not found', 404);
+    }
+
+    let purpose = '';
+    if (user.password === '') {
+      purpose = OTP_PURPOSE._SET_PASSWORD;
+    } else {
+      purpose = OTP_PURPOSE._FORGOT_PASSWORD;
+    }
+
+    const OTP = generateOTP();
+
+    const [_, insertOTP] = await this.prisma.$transaction([
+      this.prisma.oTP.updateMany({
+        where: {
+          email: email,
+        },
+        data: {
+          status: OTP_STATUS._EXPIRED,
+        },
+      }),
+      this.prisma.oTP.create({
+        select: {
+          email: true,
+          code: true,
+          purpose: true,
+          status: true,
+          expiresAt: true,
+        },
+        data: {
+          email: email,
+          code: OTP,
+          purpose,
+          status: OTP_STATUS._ACTIVE,
+          expiresAt: new Date(Date.now() + OTP_EXPIRATION),
+        },
+      }),
+    ]);
+
+    try {
+      await this.emailService.sendOTP(email, OTP);
+    } catch (error) {
+      this.logger.error('Error sending OTP email:', error);
+    }
+
+    return { email: insertOTP.email };
+  }
+
+  async setPassword(
+    body: SetPasswordRequest,
+    tempToken: string,
+  ): Promise<{ token: string }> {
+    if (!tempToken) {
+      throw new HttpException('Invalid temp token', 400);
+    }
+
+    const OTP = await this.prisma.oTP.findFirst({
+      select: {
+        id: true,
+        email: true,
+        status: true,
+        expiresAt: true,
+      },
+      where: {
+        tempToken: tempToken,
+      },
+    });
+
+    if (!OTP) {
+      throw new HttpException('Invalid token', 400);
+    }
+
+    if (OTP.status !== OTP_STATUS._VERIFIED) {
+      throw new HttpException('Invalid token', 400);
+    }
+
+    if (OTP?.expiresAt < new Date()) {
+      await this.prisma.oTP.update({
+        where: {
+          id: OTP.id,
+        },
+        data: {
+          status: OTP_STATUS._EXPIRED,
+        },
+      });
+      throw new HttpException('Expired token', 400);
+    }
+
+    const hashedPassword = generateHashPassword(body.password);
+
+    const { userUpdated, userAuthProvider } = await this.prisma.$transaction(
+      async (tx) => {
+        const userUpdated = await tx.user.update({
+          where: {
+            email: OTP.email,
+          },
+          data: {
+            password: hashedPassword,
+          },
+        });
+
+        const userAuthProvider = await tx.userAuthProvider.create({
+          data: {
+            provider: 'local',
+            providerUserId: userUpdated.id,
+            userId: userUpdated.id,
+          },
+        });
+
+        await tx.oTP.update({
+          where: {
+            id: OTP.id,
+          },
+          data: {
+            status: OTP_STATUS._COMPLETED,
+          },
+        });
+
+        return { userUpdated, userAuthProvider };
+      },
+    );
+
+    const token = this.jwtService.sign({
+      id: userUpdated.id,
+      email: userUpdated.email,
+      userAuthProvider: {
+        provider: userAuthProvider.provider,
+        providerUserId: userAuthProvider.providerUserId,
+      },
     });
 
     return { token };

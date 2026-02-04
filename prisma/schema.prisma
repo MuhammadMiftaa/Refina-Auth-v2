@@ -41,7 +41,7 @@ model UserAuthProvider {
   user User @relation(fields: [userId], references: [id])
 
   @@unique([provider, providerUserId])
-  @@index([userId])
+  @@index([userId, provider])
   @@map("user_auth_providers")
 }
 
@@ -51,6 +51,7 @@ model OTP {
   code      String
   tempToken String?
   status    String
+  purpose   String?
   expiresAt DateTime
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

@@ -363,7 +363,135 @@ Content-Type: application/json
 
 
 ### ===============================================
-### 5. FULL FLOW TEST (SUCCESS SCENARIO)
+### 5. SET PASSWORD ENDPOINT (for OAuth users or Forgot Password)
+### ===============================================
+
+### 5.1 Request Set Password OTP - SUCCESS
+POST {{baseUrl}}/auth/request-set-password
+Content-Type: application/json
+
+{
+  "email": "miftakul789@outlook.com"
+}
+
+### 5.2 Request Set Password OTP - FAIL: Empty Body
+POST {{baseUrl}}/auth/request-set-password
+Content-Type: application/json
+
+{}
+
+### 5.3 Request Set Password OTP - FAIL: Missing Email
+POST {{baseUrl}}/auth/request-set-password
+Content-Type: application/json
+
+{
+  "wrongField": "test@example.com"
+}
+
+### 5.4 Request Set Password OTP - FAIL: User Not Found
+POST {{baseUrl}}/auth/request-set-password
+Content-Type: application/json
+
+{
+  "email": "notexists@example.com"
+}
+
+### 5.5 Request Set Password OTP - FAIL: Invalid Email Format
+POST {{baseUrl}}/auth/request-set-password
+Content-Type: application/json
+
+{
+  "email": "invalid-email"
+}
+
+### 5.6 Verify OTP for Set Password - SUCCESS
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "miftakul789@outlook.com",
+  "otp": "258939"
+}
+
+### 5.7 Set Password - SUCCESS
+# Use tempToken from verify-otp response
+POST {{baseUrl}}/auth/set-password?tempToken=0Tg5jhCvILbf
+Content-Type: application/json
+
+{
+  "password": "NewSecurePassword123!",
+  "confirmPassword": "NewSecurePassword123!"
+}
+
+### 5.8 Set Password - FAIL: Empty Body
+POST {{baseUrl}}/auth/set-password?tempToken=0Tg5jhCvILbf
+Content-Type: application/json
+
+{}
+
+### 5.9 Set Password - FAIL: Missing Password
+POST {{baseUrl}}/auth/set-password?tempToken=0Tg5jhCvILbf
+Content-Type: application/json
+
+{
+  "confirmPassword": "NewSecurePassword123!"
+}
+
+### 5.10 Set Password - FAIL: Missing Confirm Password
+POST {{baseUrl}}/auth/set-password?tempToken=0Tg5jhCvILbf
+Content-Type: application/json
+
+{
+  "password": "NewSecurePassword123!"
+}
+
+### 5.11 Set Password - FAIL: Password Don't Match
+POST {{baseUrl}}/auth/set-password?tempToken=0Tg5jhCvILbf
+Content-Type: application/json
+
+{
+  "password": "NewSecurePassword123!",
+  "confirmPassword": "DifferentPassword123!"
+}
+
+### 5.12 Set Password - FAIL: Password Too Short
+POST {{baseUrl}}/auth/set-password?tempToken=0Tg5jhCvILbf
+Content-Type: application/json
+
+{
+  "password": "123",
+  "confirmPassword": "123"
+}
+
+### 5.13 Set Password - FAIL: Missing tempToken
+POST {{baseUrl}}/auth/set-password
+Content-Type: application/json
+
+{
+  "password": "NewSecurePassword123!",
+  "confirmPassword": "NewSecurePassword123!"
+}
+
+### 5.14 Set Password - FAIL: Invalid tempToken
+POST {{baseUrl}}/auth/set-password?tempToken=invalid-token-123
+Content-Type: application/json
+
+{
+  "password": "NewSecurePassword123!",
+  "confirmPassword": "NewSecurePassword123!"
+}
+
+### 5.15 Set Password - FAIL: Expired tempToken
+POST {{baseUrl}}/auth/set-password?tempToken=expired-token
+Content-Type: application/json
+
+{
+  "password": "NewSecurePassword123!",
+  "confirmPassword": "NewSecurePassword123!"
+}
+
+### ===============================================
+### 6. FULL FLOW TEST (SUCCESS SCENARIO)
 ### ===============================================
 
 ### Step 1: Register new user
@@ -371,7 +499,7 @@ POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
 {
-  "email": "madmifta77@gmail.com"
+  "email": "arbog9030@gmail.com"
 }
 
 ### Step 2: Verify OTP (get OTP from console log or email)
@@ -402,36 +530,3 @@ Content-Type: application/json
   "password": "SecurePassword123!"
 }
 
-
-
-### ===============================================
-### 6. OAUTH ENDPOINTS (Placeholder)
-### ===============================================
-
-### Google Login
-POST {{baseUrl}}/auth/google
-Content-Type: application/json
-
-### Google Callback
-POST {{baseUrl}}/auth/google/callback
-Content-Type: application/json
-
-### Microsoft Login
-POST {{baseUrl}}/auth/microsoft
-Content-Type: application/json
-
-### Microsoft Callback
-POST {{baseUrl}}/auth/microsoft/callback
-Content-Type: application/json
-
-### GitHub Login
-POST {{baseUrl}}/auth/github
-Content-Type: application/json
-
-### GitHub Callback
-POST {{baseUrl}}/auth/github/callback
-Content-Type: application/json
-
-### Logout
-POST {{baseUrl}}/auth/logout
-Content-Type: application/json
