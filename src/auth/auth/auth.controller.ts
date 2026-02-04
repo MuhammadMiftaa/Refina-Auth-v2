@@ -1,4 +1,16 @@
-import { Body, Controller, HttpException, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpRedirectResponse,
+  Post,
+  Query,
+  Redirect,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   RegisterRequest,
@@ -14,10 +26,16 @@ import {
   completeProfileRequestValidation,
 } from 'src/model/complete-profile.model';
 import { LoginRequest, loginRequestValidation } from 'src/model/login.model';
+import { AuthGuard } from '@nestjs/passport';
+import type { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('/register')
   async register(
@@ -78,34 +96,64 @@ export class AuthController {
     };
   }
 
-  @Post('/google')
+  @Get('/google')
+  @UseGuards(AuthGuard('google'))
   googleLogin() {
-    return this.authService.oauthLogin('google');
+    // * Guard akan redirect ke Google
   }
 
-  @Post('/google/callback')
-  googleLoginCallback() {
-    return this.authService.googleLoginCallback();
+  @Get('/google/callback')
+  @UseGuards(AuthGuard('google'))
+  @Redirect()
+  async googleLoginCallback(
+    @Req() req: Request,
+  ): Promise<HttpRedirectResponse> {
+    const res = await this.authService.oauthLoginCallback(req.user);
+
+    return {
+      url: `${this.configService.get<string>('REDIRECT_URL')}#token=${res.token}`,
+      statusCode: 302,
+    };
   }
 
-  @Post('/microsoft')
-  microsoftLogin() {
-    return this.authService.oauthLogin('microsoft');
-  }
-
-  @Post('/microsoft/callback')
-  microsoftLoginCallback() {
-    return this.authService.microsoftLoginCallback();
-  }
-
-  @Post('/github')
+  @Get('/github')
+  @UseGuards(AuthGuard('github'))
   githubLogin() {
-    return this.authService.oauthLogin('github');
+    // * Guard akan redirect ke GitHub
   }
 
-  @Post('/github/callback')
-  githubLoginCallback() {
-    return this.authService.githubLoginCallback();
+  @Get('/github/callback')
+  @UseGuards(AuthGuard('github'))
+  @Redirect()
+  async githubLoginCallback(
+    @Req() req: Request,
+  ): Promise<HttpRedirectResponse> {
+    const res = await this.authService.oauthLoginCallback(req.user);
+
+    return {
+      url: `${this.configService.get<string>('REDIRECT_URL')}#token=${res.token}`,
+      statusCode: 302,
+    };
+  }
+
+  @Get('/microsoft')
+  @UseGuards(AuthGuard('microsoft'))
+  microsoftLogin() {
+    // * Guard akan redirect ke Microsoft
+  }
+
+  @Get('/microsoft/callback')
+  @UseGuards(AuthGuard('microsoft'))
+  @Redirect()
+  async microsoftLoginCallback(
+    @Req() req: Request,
+  ): Promise<HttpRedirectResponse> {
+    const res = await this.authService.oauthLoginCallback(req.user);
+
+    return {
+      url: `${this.configService.get<string>('REDIRECT_URL')}#token=${res.token}`,
+      statusCode: 302,
+    };
   }
 
   @Post('/logout')

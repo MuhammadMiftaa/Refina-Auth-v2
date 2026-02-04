@@ -3,6 +3,9 @@ import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { GoogleOauth } from './oauth/google.oauth';
+import { GithubOauth } from './oauth/github.oauth';
+import { MicrosoftOauth } from './oauth/microsoft.oauth';
 
 @Module({
   imports: [
@@ -15,6 +18,6 @@ import { ConfigService } from '@nestjs/config';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, GoogleOauth, GithubOauth, MicrosoftOauth],
 })
 export class AuthModule {}

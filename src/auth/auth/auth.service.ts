@@ -31,8 +31,13 @@ export class AuthService {
       where: { email: body.email },
     });
 
-    if (existingUser) {
+    if (existingUser && existingUser.password !== '') {
       throw new HttpException('User already exists', 400);
+    } else if (existingUser && existingUser.password === '') {
+      throw new HttpException(
+        'Email already registered. Please log in with OAuth or set a password.',
+        409,
+      );
     }
 
     const OTP = generateOTP();
@@ -214,7 +219,7 @@ export class AuthService {
           select: {
             provider: true,
             providerUserId: true,
-          }
+          },
         },
         createdAt: true,
         deletedAt: true,
@@ -227,6 +232,13 @@ export class AuthService {
 
     if (!user) {
       throw new HttpException('User not found', 404);
+    }
+
+    if (user.password === '') {
+      throw new HttpException(
+        'This account was created using OAuth. Please log in with OAuth or set a password.',
+        409,
+      );
     }
 
     const isValidPassword = bcrypt.compareSync(body.password, user.password);
@@ -244,42 +256,63 @@ export class AuthService {
     return { token };
   }
 
-  async oauthLogin(provider: string) {
-    // OAuth login logic for different providers
-    switch (provider) {
-      case 'google':
-        // Google login logic
-        break;
-      case 'microsoft':
-        // Microsoft login logic
-        break;
-      case 'github':
-        // GitHub login logic
-        break;
-      default:
-        throw new Error('Unsupported provider');
+  async oauthLoginCallback(oauthUser: any): Promise<{ token: string }> {
+    let user = await this.prisma.user.findFirst({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        userAuthProvider: {
+          select: {
+            provider: true,
+            providerUserId: true,
+          },
+        },
+      },
+      where: {
+        userAuthProvider: {
+          some: {
+            provider: oauthUser.provider,
+            providerUserId: oauthUser.providerId,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          userAuthProvider: {
+            select: {
+              provider: true,
+              providerUserId: true,
+            },
+          },
+        },
+        data: {
+          email: oauthUser.email,
+          name: oauthUser.firstName || oauthUser.username || oauthUser.name,
+          password: '',
+          userAuthProvider: {
+            create: {
+              provider: oauthUser.provider,
+              providerUserId: oauthUser.providerId,
+            },
+          },
+        },
+      });
     }
-  }
 
-  async googleLoginCallback() {
-    // Google login callback logic
-    return {
-      message: 'Google login callback successful',
-    };
-  }
+    const token = this.jwtService.sign({
+      id: user.id,
+      email: user.email,
+      userAuthProvider: user.userAuthProvider,
+    });
 
-  async microsoftLoginCallback() {
-    // Microsoft login callback logic
-    return {
-      message: 'Microsoft login callback successful',
-    };
-  }
-
-  async githubLoginCallback() {
-    // GitHub login callback logic
-    return {
-      message: 'GitHub login callback successful',
-    };
+    return { token };
   }
 
   async logout() {
