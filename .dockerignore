@@ -1,5 +1,48 @@
+# Dependencies
 node_modules
+
+# Build output (akan di-copy dari builder stage)
 dist
+
+# Generated files (akan di-generate di builder stage)
+generated
+
+# Logs
 *.log
-*.md
+npm-debug.log*
+
+# Git
 .git
+.gitignore
+
+# IDE
+.idea
+.vscode
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+test
+*.spec.ts
+jest.config.js
+jest-e2e.json
+
+# Environment (jangan include secrets)
+.env
+.env.*
+!.env.example
+
+# Docker files (tidak perlu di dalam image)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# CI/CD
+.gitlab-ci.yml
+.github
+
+# Misc
+.DS_Store
+coverage
